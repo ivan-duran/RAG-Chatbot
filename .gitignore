@@ -9,7 +9,7 @@ env/
 # Base de datos vectorial local (se genera con rag.py)
 chroma_db/
 # Articulos
-articulos/
+articulos/*
 
 # Python cache
 __pycache__/
