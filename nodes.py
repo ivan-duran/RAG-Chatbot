@@ -94,7 +94,7 @@ razonable con esos temas. Por ejemplo:
 "Enséñame a programar en Python."
 "¿Quién ganó el partido de fútbol?"
 "Escríbeme un poema sobre Napoleón."
-"recomiendas una dosis de vino"
+"Recomendar dosis para personas."
 
 Usa la conversación previa para interpretar mensajes cortos o
 de seguimiento.

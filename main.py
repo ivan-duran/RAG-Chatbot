@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 # pyrefly: ignore [missing-import]
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, RemoveMessage
 
 from graph import graph
 
@@ -34,6 +34,9 @@ def main():
 
         if not user_input.strip():
             continue
+        
+        # antes de llamar al grafo, guardamos cuántos mensajes hay
+        num_mensajes = len(graph.get_state(config).values.get("messages", []))
 
         try:
 
@@ -48,7 +51,11 @@ def main():
             )
 
         except Exception as e:
-
+            nuevos = graph.get_state(config).values["messages"][num_mensajes:]
+            graph.update_state(
+                config,
+                {"messages": [RemoveMessage(id=m.id) for m in nuevos]}
+            )
             print(
                 f"\n[ERROR] {e}"
             )
