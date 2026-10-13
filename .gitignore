@@ -1,0 +1,24 @@
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Variables de entorno y secretos (NUNCA subir a GitHub)
+.env
+
+# Base de datos vectorial local (se genera con rag.py)
+chroma_db/
+# Articulos
+articulos/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
