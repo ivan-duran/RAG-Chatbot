@@ -1,5 +1,5 @@
 # pyrefly: ignore [missing-import]
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage, trim_messages
 
 from llm import llm
 
@@ -52,6 +52,9 @@ RESPUESTA_FUERA_DE_ALCANCE = (
     "su microbiología y procesos de elaboración. "
     "¿Tienes alguna pregunta sobre eso?"
 )
+
+# Tope de seguridad para los turnos anteriores que recibe el agente.
+MAX_TOKENS_HISTORIAL = 16000
 
 
 # ─────────────────────────────────────────────
@@ -143,11 +146,41 @@ def responder_fuera_de_alcance(state):
 # NODE 3 — Agente
 # ─────────────────────────────────────────────
 
+def preparar_historial(messages):
+
+    # El turno actual empieza en el último mensaje del usuario
+    inicio_turno = 0
+
+    for i in range(len(messages) - 1, -1, -1):
+        if messages[i].type == "human":
+            inicio_turno = i
+            break
+
+    # Turnos anteriores: solo preguntas y respuestas finales.
+    # Se descartan juntos cada pedido de búsqueda y su resultado.
+    anteriores = [
+        m for m in messages[:inicio_turno]
+        if m.type == "human" or (m.type == "ai" and not m.tool_calls)
+    ]
+
+    # Red de seguridad: si los turnos anteriores son demasiados,
+    # se quedan los más recientes, empezando siempre en una pregunta
+    anteriores = trim_messages(
+        anteriores,
+        max_tokens=MAX_TOKENS_HISTORIAL,
+        token_counter="approximate",
+        strategy="last",
+        start_on="human",
+    )
+
+    # Turno actual: siempre completo, el agente necesita ver sus búsquedas
+    return anteriores + messages[inicio_turno:]
+
 def agente(state):
 
     messages = [
         SYSTEM_PROMPT,
-        *state["messages"],
+        *preparar_historial(state["messages"]),
     ]
 
     response = llm_with_tools.invoke(messages)
@@ -155,3 +188,4 @@ def agente(state):
     return {
         "messages": [response]
     }
+
