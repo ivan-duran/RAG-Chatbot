@@ -41,8 +41,16 @@ REFERENCES_HEADING = re.compile(
 
 # Embeddings locales y multilingües: permiten preguntar en español
 # sobre artículos escritos en inglés.
+# Qwen3-Embedding lee fragmentos de hasta 32k tokens (el modelo anterior
+# los cortaba a los 128) y antepone a las consultas su instrucción de
+# búsqueda ("query"); a los fragmentos no.
+EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-0.6B"
+
 embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    model_name=EMBEDDING_MODEL,
+    encode_kwargs={"normalize_embeddings": True},
+    # Reemplaza a encode_kwargs en las consultas: se repite normalize
+    query_encode_kwargs={"prompt_name": "query", "normalize_embeddings": True},
 )
 
 # La base no se abre al importar este archivo: así construir_indice()
@@ -54,12 +62,27 @@ def abrir_vectorstore():
         collection_name=COLLECTION_NAME,
         persist_directory=str(DB_DIR),
         embedding_function=embeddings,
+        # Ambos se fijan al crear la colección (Chroma usa L2 por defecto)
+        collection_configuration={"hnsw": {"space": "cosine"}},
+        collection_metadata={"embedding_model": EMBEDDING_MODEL},
     )
 
 
 def obtener_retriever():
 
-    return abrir_vectorstore().as_retriever(
+    vectorstore = abrir_vectorstore()
+
+    # Un índice construido con otro modelo devuelve fragmentos sin
+    # relación con la pregunta (o falla por la dimensión de los vectores)
+    metadata = vectorstore._collection.metadata or {}
+
+    if metadata.get("embedding_model") != EMBEDDING_MODEL:
+        raise RuntimeError(
+            f"El índice en {DB_DIR} no fue construido con {EMBEDDING_MODEL}. "
+            "Reconstrúyelo con: python rag.py"
+        )
+
+    return vectorstore.as_retriever(
         search_kwargs={"k": 4}
     )
 
