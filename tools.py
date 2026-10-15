@@ -28,8 +28,11 @@ def buscar_en_articulos(query: str) -> str:
 
         fuente = Path(doc.metadata.get("source", "")).name
         pagina = doc.metadata.get("page")
+        pagina_fin = doc.metadata.get("page_end", pagina)
 
-        if pagina is not None:
+        if pagina is not None and pagina_fin != pagina:
+            fuente += f", páginas {pagina + 1}-{pagina_fin + 1}"
+        elif pagina is not None:
             fuente += f", página {pagina + 1}"
 
         print(f"[RAG] ← {fuente}")
